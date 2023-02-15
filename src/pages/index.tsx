@@ -1,32 +1,48 @@
-import { GetServerSideProps, InferGetStaticPropsType } from 'next';
+import { GetServerSideProps, InferGetStaticPropsType, InferGetServerSidePropsType } from 'next';
 
 import { Header } from '../components/Header';
 import { ContentCard } from '../components/ContentCard';
 import { ContentInput } from '../components/ContentInput';
 
 import { Headline, Grid } from '@smartive-education/pizza-hawaii';
+import { useState } from 'react';
 
 import User from './../data/user.json';
+// static data
 import { Post as PostType } from '../types/Post';
+// dynamic qwacker
+import { fetchMumbles, Mumble } from '../services/qwacker';
 
-type PageProps = {
-	posts: {
-		data: PostType[];
-	};
-};
+export default function PageHome(): InferGetServerSidePropsType<typeof getServerSideProps> {
+	// use state hooks for loading
+	const [mumbles, setMumbles] = useState([]);
+	const [loading, setLoading] = useState(true);
+	console.log('mumbles at start', mumbles);
 
-export default function PageHome({ posts }: PageProps): InferGetStaticPropsType<typeof getServerSideProps> {
 	const user = {
 		...User,
 		profileLink: `user/${User.userName}`,
 	};
 
-	const Posts = posts.data;
+	const loadMoreMumbles = async () => {
+		const { mumbles: newMumbles } = await fetchMumbles({
+			limit: 12,
+			offset: 0,
+		});
+		setMumbles([...mumbles, ...newMumbles]);
+		console.log('new mumbles arrives', newMumbles);
+		setLoading(false);
+	};
+
+	// const Posts = posts.data;
 
 	return (
 		<div className="bg-slate-100">
 			<Header user={user} />
 			<main className="px-content">
+				<button onClick={() => loadMoreMumbles()} className="text-violet-600 bg-pink-400 rounded py-3">
+					Load Moar Mumbles
+				</button>
 				<section className="mx-auto w-full max-w-content">
 					<div className="mb-2 text-violet-600">
 						<Headline level={2}>Welcome to Storybook</Headline>
@@ -45,13 +61,27 @@ export default function PageHome({ posts }: PageProps): InferGetStaticPropsType<
 							author={user}
 							placeHolderText="Deine Meinung zählt"
 						/>
-
-						{Posts &&
-							Posts.sort((a: PostType, b: PostType) => {
-								return new Date(b.createdAt) > new Date(a.createdAt) ? 1 : -1;
-							}).map((post) => {
-								return <ContentCard key={post.id} variant="timeline" post={post} />;
-							})}
+						<ul>
+							{!loading &&
+								mumbles.map((mumble) => (
+									<>
+									<ContentCard key={mumble.id} variant="timeline" post={mumble} />
+										<li>
+											test output:<br />
+											id: {mumble.id} <br />
+											text: {mumble.text} <br />
+											likeCounter: {mumble.likeCount}
+										</li>
+									</>
+								))}
+						</ul>
+						{/* {Posts && 
+							// Posts.sort((a: PostType, b: PostType) => {
+								// return new Date(b.createdAt) > new Date(a.createdAt) ? 1 : -1;
+							// }).map((post) => {
+								// return <ContentCard key={post.id} variant="timeline" post={post} />;
+							// })}
+						*/}
 					</Grid>
 				</section>
 			</main>
