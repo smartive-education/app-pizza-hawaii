@@ -19,8 +19,8 @@ export const MainLayout: FC<TMainLayout> = ({ children }) => {
 				<link rel="icon" href="favicon.svg" />
 			</Head>
 			{currentUser && <Header user={currentUser} />}
-			<div className="w-screen h-screen bg-slate-100">
-				<div className="w-full sm:w-7/12 px-s my-0 mx-auto">{children}</div>
+			<div className="sm:w-7/12 px-s my-0 mx-auto">
+				<div className="w-full sm:w-7/12 px-s my-0 mx-auto justify-center text-slate-200">{children}</div>
 			</div>
 		</>
 	);

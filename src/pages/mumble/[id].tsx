@@ -9,9 +9,6 @@ import { Header } from '../../components/Header';
 import { TPost, TUser } from '../../types';
 
 export default function DetailPage({ post, currentUser }): InferGetServerSidePropsType<typeof getServerSideProps> {
-	console.log('%c[id].tsx line:16 postData', 'color: white; background-color: #007acc;', post);
-
-	console.log('currentUser', currentUser);
 	return (
 		<div className="bg-slate-100">
 			<Header user={currentUser} />

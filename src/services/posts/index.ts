@@ -140,7 +140,7 @@ const searchPostbyQuerry = async (queryObj: object) => {
 	if (!queryObj) {
 		throw new Error('searchPostbyQuerry: no valid query object was provided');
 	}
-
+	console.log('%cindex.ts line:143 queryObj', 'color: white; background-color: #007acc;', queryObj);
 	try {
 		const response = await fetch(`${process.env.NEXT_PUBLIC_QWACKER_API_URL}posts/search`, {
 			method: 'POST',
