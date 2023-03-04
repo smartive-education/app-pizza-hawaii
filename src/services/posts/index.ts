@@ -140,7 +140,6 @@ const searchPostbyQuerry = async (queryObj: object) => {
 	if (!queryObj) {
 		throw new Error('searchPostbyQuerry: no valid query object was provided');
 	}
-	console.log('%cindex.ts line:143 queryObj', 'color: white; background-color: #007acc;', queryObj);
 	try {
 		const response = await fetch(`${process.env.NEXT_PUBLIC_QWACKER_API_URL}posts/search`, {
 			method: 'POST',
@@ -153,8 +152,12 @@ const searchPostbyQuerry = async (queryObj: object) => {
 		if (response.status !== 200) {
 			throw new Error('Something went sour! not status 200. have a look at the network status');
 		}
-
-		return await response.json();
+		const postFromQuacker = (await response.json()) as TRawPost;
+		// TODO for now return the whole array without date
+		// console.log('%cindex.ts line:143 postFromQuacker', 'color: white; background-color: #007acc;', postFromQuacker);
+		return postFromQuacker;
+		// return forEach(transformPost(postFromQuacker.data()));
+		// return transformPost(await response.json());
 	} catch (error) {
 		throw new Error('searchPostbyQuerry failed');
 	}
