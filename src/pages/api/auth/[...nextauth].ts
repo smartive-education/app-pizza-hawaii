@@ -43,6 +43,7 @@ export const authOptions: NextAuthOptions = {
 				};
 			},
 			clientId: process.env.ZITADEL_CLIENT_ID,
+			redirect_uri: process.env.NEXTAUTH_URL,
 		},
 	],
 	session: {
