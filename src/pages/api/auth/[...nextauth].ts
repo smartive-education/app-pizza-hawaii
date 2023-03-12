@@ -1,50 +1,31 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
+import ZitadelProvider from 'next-auth/providers/zitadel';
 
 import { services } from '../../../services';
 import { TUser } from '../../../types';
 
 export const authOptions: NextAuthOptions = {
 	providers: [
-		{
-			id: 'zitadel',
-			name: 'zitadel',
-			type: 'oauth',
-			version: '2',
-			wellKnown: process.env.ZITADEL_ISSUER,
-			authorization: {
-				params: {
-					scope: 'openid email profile',
-				},
+		ZitadelProvider({
+			issuer: process.env.ZITADEL_ISSUER as string,
+			clientId: process.env.ZITADEL_CLIENT_ID as string,
+			clientSecret: process.env.ZITADEL_CLIENT_SECRET as string,
+			async profile(zitadelProfile, { access_token }): Promise<TUser> {
+				if (!access_token) throw new Error('No access token found');
+
+				const user = (await services.users.getUserById({
+					id: zitadelProfile.sub,
+					accessToken: access_token,
+				})) as TUser;
+				return {
+					...user,
+					email: zitadelProfile.email,
+				};
 			},
-			idToken: true,
-			checks: ['pkce', 'state'],
 			client: {
 				token_endpoint_auth_method: 'none',
 			},
-			async profile(_, { access_token }): Promise<TUser> {
-				if (!access_token) throw new Error('No access token found');
-
-				const { userinfo_endpoint } = await (
-					await fetch(`${process.env.ZITADEL_ISSUER}/.well-known/openid-configuration`)
-				).json();
-
-				const profile = await (
-					await fetch(userinfo_endpoint, {
-						headers: {
-							Authorization: `Bearer ${access_token}`,
-						},
-					})
-				).json();
-
-				const user = (await services.users.getUserById({ id: profile.sub, accessToken: access_token })) as TUser;
-				return {
-					...user,
-					email: profile.email,
-				};
-			},
-			clientId: process.env.ZITADEL_CLIENT_ID,
-			redirect_uri: process.env.NEXTAUTH_URL,
-		},
+		}),
 	],
 	session: {
 		maxAge: 12 * 60 * 60, // 12 hours
