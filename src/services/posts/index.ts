@@ -12,7 +12,8 @@ type TRawPost = Omit<TPost, 'createdAt'>;
  * @param {string} olderThan id of the oldest post
  * @param {number} limit
  * @param {number} offset default 0
- * @param {string} accessToken
+ * @param {string} creator id of the user who created the post
+ * @param {string} accessToken access token of the user who is fetching the posts
  *
  * @returns {Promise<{ count: number; users: TPost[] }>}
  */
@@ -75,22 +76,23 @@ const getPosts = async ({
 	});
 
 	const { count, data } = (await res.json()) as { count: number; data: TRawPost[] };
-	const loadedPosts = data.length;
+	const lastPostId = data[data.length - 1]?.id as string;
 	const posts = data.filter((post) => post.type === EPostType.POST).map(transformPost) as TPost[];
 
-	// load more posts if limit is not set and the amount of posts is less than the total count
-	if (limit === undefined && loadedPosts < count) {
-		const remainingOffset = offset + loadedPosts;
-		const { posts: remainingPosts } = await getPosts({
+	// If there are more entries to fetch, make a recursive call
+	if (count > 0 && (!limit || posts.length < limit)) {
+		const remainingLimit = limit && count > limit ? limit - posts.length : count;
+		const { posts: remainingPosts, count: remainingCount } = await getPosts({
+			limit: remainingLimit,
 			newerThan,
-			olderThan,
-			offset: remainingOffset,
+			olderThan: lastPostId,
+			creator,
 			accessToken,
 		});
 
 		return {
-			count,
-			posts: [...posts, ...remainingPosts],
+			count: remainingCount,
+			posts: [...posts, ...remainingPosts].slice(0, limit),
 		};
 	}
 
@@ -128,6 +130,24 @@ const getPostById = async ({ id, accessToken }: TGetPostById) => {
 	});
 	const post = (await res.json()) as TRawPost;
 	return transformPost(post);
+};
+
+const deletePost = async ({ id, accessToken }: TGetPostById) => {
+	const url = `${process.env.NEXT_PUBLIC_QWACKER_API_URL}posts/${id}`;
+
+	const res = await fetch(url, {
+		method: 'DELETE',
+		headers: {
+			'content-type': 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+
+	if (res.status !== 204) {
+		return false;
+	}
+
+	return true;
 };
 
 // get all Replies for a given Post Id
@@ -180,9 +200,16 @@ const searchPostByQuery = async ({ query, accessToken }: TGetPostByQuery) => {
 	};
 };
 
-const getPostsByUserId = async ({ id, accessToken }: TGetPostById) => {
+type TGetPostByUserId = {
+	id: string;
+	limit?: number;
+	accessToken: string;
+};
+
+const getPostsByUserId = async ({ id, limit, accessToken }: TGetPostByUserId) => {
 	const { posts } = await getPosts({
 		creator: id,
+		limit,
 		accessToken,
 	});
 
@@ -191,7 +218,6 @@ const getPostsByUserId = async ({ id, accessToken }: TGetPostById) => {
 
 // TODO: implement this in a better way
 const getLikedPostsByCurrentUser = async ({ id, accessToken }: TGetPostById) => {
-	console.log('current user id', id);
 	const { posts } = await getPosts({
 		accessToken,
 	});
@@ -199,7 +225,13 @@ const getLikedPostsByCurrentUser = async ({ id, accessToken }: TGetPostById) => 
 	return posts.filter((post) => post.likedByUser) as TPost[];
 };
 
-const addPost = async (text: string, file: TUploadImage | null, accessToken?: string) => {
+type TCreatePost = {
+	text: string;
+	file: TUploadImage;
+	accessToken: string;
+};
+
+const createPost = async ({ text, file, accessToken }: TCreatePost) => {
 	if (!accessToken) {
 		throw new Error('No access token');
 	}
@@ -235,8 +267,9 @@ const transformPost = (post: TRawPost) => ({
 
 export const postsService = {
 	getPosts,
-	addPost,
+	createPost,
 	getPostById,
+	deletePost,
 	getPostsByUserId,
 	getLikedPostsByCurrentUser,
 	getRepliesById,
