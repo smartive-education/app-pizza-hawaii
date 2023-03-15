@@ -7,7 +7,7 @@ import Head from 'next/head';
 import { MainLayout } from '../../components/layoutComponents/MainLayout';
 import { ProfileHeader } from '../../components/ProfileHeader';
 import { ContentCard } from '../../components/ContentCard';
-
+import { Recommender } from '../../components/Recommender';
 import { Switch, Headline, UserName, IconLink, TimeStamp, Richtext, Grid, Button } from '@smartive-education/pizza-hawaii';
 
 import { services } from '../../services';
@@ -42,7 +42,6 @@ const UserPage: FC<TUserPage> = ({ user, posts, likes }: InferGetServerSideProps
 	}
 
 	const isCurrentUser = currentUser?.id === user.id;
-
 	const postsToRender: Record<string, TPost[]> = {
 		posts,
 		likes,
@@ -102,6 +101,11 @@ const UserPage: FC<TUserPage> = ({ user, posts, likes }: InferGetServerSideProps
 						<Button as="button" size="M" colorScheme="violet">
 							Follow
 						</Button>
+					)}
+					{isCurrentUser && (
+						<Grid variant="col" gap="M" marginBelow="M">
+							<Recommender currentUserId={user.id} />
+						</Grid>
 					)}
 					<Grid variant="col" gap="M" marginBelow="M">
 						{postsToRender[currentPostType] &&
